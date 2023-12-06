@@ -1,3 +1,4 @@
+import json
 import os
 from abc import ABC, abstractmethod
 
@@ -24,6 +25,7 @@ class Vacancy:
     """
         Сортировка вакансий
     """
+
     def __gt__(self, other):
         if not other.salary_from:
             return True
@@ -37,6 +39,45 @@ class Vacancy:
         if self.salary_from is None and salary_to is None:
             salary_from = "Не указано"
         return f'Вакансия: \"{self.title}"\nКомпания: \"{self.employer}"\nЗарплата: {salary_from} {salary_to} \nURL: {self.url}'
+
+
+class Connector:
+    '''Создание класса для работы с json файлом с вакансиями'''
+
+    def __init__(self, keyword, vacancies_json):
+        self.__filename = f'{keyword.title()}.json'
+        self.insert(vacancies_json)
+
+    def insert(self, vacancies_json):
+        ''' Внесение данных о вакансиях в json файл '''
+        with open(self.__filename, 'w', encoding='utf-8') as file:
+            json.dump(vacancies_json, file, ensure_ascii=False, indent=4)
+
+    def select(self):
+        ''' Извлечение из json файла данных о вакансии с заданными параметрами '''
+        with open(self.__filename, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+        vacancies = [Vacancy(x['id'], x['title'], x['url'], x['salary_from'], x['salary_to'], x['employer'], x['api'])
+                     for x in data]
+        return vacancies
+
+    def sorted_vacancies_by_salary_from_asc(self):
+        ''' Сортировка вакансий по минимальным зарплатам по возрастающей'''
+        vacancies = self.select()
+        vacancies = sorted(vacancies, key=lambda p: p.salary_from or 0)
+        return vacancies
+
+    def sorted_vacancies_by_salary_from_desc(self):
+        ''' Сортировка вакансий по минимальным зарплатам по убывающей'''
+        vacancies = self.select()
+        vacancies = sorted(vacancies, reverse=True, key=lambda p: p.salary_from or 0)
+        return vacancies
+
+    def sorted_vacancies_by_salary_to_asc(self):
+        ''' Сортировка по максимальным заррплатам'''
+        vacancies = self.select()
+        vacancies = sorted(vacancies, key=lambda x: x.salary_to if x.salary_to else 0)
+        return vacancies
 
 
 class Engine(ABC):
@@ -70,9 +111,9 @@ class HeadHunter(Engine):
     def get_salary(salary):
         formated_salary = [None, None]
         if salary and salary["from"] and salary["from"] != 0:
-            formated_salary[0] = salary["from"] if salary["currency"].lower == "rur" else salary["from"] * 76
+            formated_salary[0] = salary["from"] if salary["currency"].lower == "rur" else salary["from"]
         if salary and salary["to"] and salary["to"] != 0:
-            formated_salary[1] = salary["to"] if salary["currency"].lower == "rur" else salary["to"] * 76
+            formated_salary[1] = salary["to"] if salary["currency"].lower == "rur" else salary["to"]
         return formated_salary
 
     def get_request(self):
@@ -129,7 +170,7 @@ class SuperJob(Engine, ABC):
     def get_salary(salary, currency):
         formatted_salary = None
         if salary and salary != 0:
-            formatted_salary = salary if currency == 'rub' else salary['from'] * 76
+            formatted_salary = salary if currency == 'rub' else salary['from']
         return formatted_salary
 
     def get_request(self):
