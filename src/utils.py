@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 
 import requests
@@ -20,6 +21,9 @@ class Engine(ABC):
 
 
 class HeadHunter(Engine):
+    """
+    Класс API по hh.ru
+    """
     def __init__(self, keyword):
         self.keyword = keyword
         self.__header = {
@@ -63,3 +67,31 @@ class HeadHunter(Engine):
                 "api": "HeadHunter",
             })
         return formatted_vacancies
+
+    def get_vacancies(self, pages_count=1):
+        while self.__params["page"] < pages_count:
+            print(f"HeadHunter, Парсинг страницы {self.__params['page'] + 1}", end=": ")
+            try:
+                values = self.get_request()
+            except ParsingError:
+                print("Ошибка при получении данных")
+                break
+            print(f"Найдено ({len(values)}) вакансий")
+            self.__vacancies.extend(values)
+            self.__params["page"] += 1
+
+
+class SuperJob(Engine, ABC):
+    __API_KEY = os.getenv("SUPERJOB_APIKEY")
+
+    def __init__(self, keyword):
+        self.keyword = keyword
+        self.__header = {"X-Api-App-Id": self.__API_KEY}
+        self.__params = {
+            "keyword": keyword,
+            "page": 0,
+            "count": 100,
+        }
+        self.__vacancies = []
+
+
