@@ -94,4 +94,20 @@ class SuperJob(Engine, ABC):
         }
         self.__vacancies = []
 
+    @staticmethod
+    def get_salary(salary, currency):
+        formatted_salary = None
+        if salary and salary != 0:
+            formatted_salary = salary if currency == 'rub' else salary['from'] * 76
+        return formatted_salary
+
+
+    def get_request(self):
+        response = requests.get("https://api.superjob.ru/2.0/vacancies/",
+                                headers=self.__header,
+                                params=self.__params)
+        if response.status_code != 200:
+            raise ParsingError
+        return response.json()['objects']
+
 
